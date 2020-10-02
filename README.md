@@ -1,1 +1,1 @@
-# GARCH_Sentiment
+# ARMA-GARCH-Models
