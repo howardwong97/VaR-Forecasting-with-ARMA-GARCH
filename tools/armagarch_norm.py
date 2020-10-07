@@ -1,7 +1,6 @@
 import numpy as np
 import itertools
 from scipy.optimize import minimize
-from sklearn.covariance import MinCovDet
 import warnings
 from tqdm.notebook import tqdm
 
@@ -71,7 +70,7 @@ def non_gjr_constraint(params, p=1, q=1, r=1, gjr=False, neg=True, out=None):
 
 def order_determination(r, max_p, max_q, gjr=False, verbose=False):
     np.seterr(divide='ignore', invalid='ignore', over='ignore')  #
-    order_combinations = list(itertools.product(np.arange(1, max_p + 1), np.arange(1, max_q + 1)))
+    order_combinations = list(itertools.product(np.arange(max_p + 1), np.arange(max_q + 1)))
     best_aic = np.inf
 
     for order in tqdm(order_combinations):
@@ -84,11 +83,11 @@ def order_determination(r, max_p, max_q, gjr=False, verbose=False):
             bounds = bounds + [alpha_bounds] + [gamma_bounds] + [beta_bounds]
             initial_params = [0.001 for _ in range(p + q + 1)]
             initial_params += [0.001, 0.1, 0.01, 0.8]
-            initial_params = np.array(initial_params).reshape((len(initial_params), ))
+            initial_params = np.array(initial_params).reshape((len(initial_params),))
             con = [
                 {'type': 'ineq', 'fun': gjr_constraint},
-                {'type': 'ineq', 'fun': lambda x: 1 - np.sum(x[1:p+1]) - np.finfo(np.float64).eps}
-                   ]
+                {'type': 'ineq', 'fun': lambda x: 1 - np.sum(x[1:p + 1]) - np.finfo(np.float64).eps}
+            ]
         else:
             bounds = bounds + [alpha_bounds] + [beta_bounds]
             initial_params = [0.001 for _ in range(p + q + 1)]
@@ -96,8 +95,8 @@ def order_determination(r, max_p, max_q, gjr=False, verbose=False):
             initial_params = np.array(initial_params).reshape((len(initial_params),))
             con = [
                 {'type': 'ineq', 'fun': non_gjr_constraint},
-                {'type': 'ineq', 'fun': lambda x: 1 - np.sum(x[1:p+1]) - np.finfo(np.float64).eps}
-                   ]
+                {'type': 'ineq', 'fun': lambda x: 1 - np.sum(x[1:p + 1]) - np.finfo(np.float64).eps}
+            ]
 
         args = (p, q, r, gjr, True, None)
         res = minimize(get_loglikelihood, initial_params, args=args, bounds=bounds, constraints=con, method='SLSQP')
@@ -119,40 +118,3 @@ def order_determination(r, max_p, max_q, gjr=False, verbose=False):
         print('q =', best_q)
         print('AIC =', best_aic)
     return best_p, best_q, best_params
-
-
-def hessian_2sided(fun, theta, args):
-    f = fun(theta, *args)
-    h = 1e-5 * np.abs(theta)
-    thetah = theta + h
-    h = thetah - theta
-    K = np.size(theta, 0)
-    h = np.diag(h)
-
-    fp = np.zeros(K)
-    fm = np.zeros(K)
-    for i in range(K):
-        fp[i] = fun(theta + h[i], *args)
-        fm[i] = fun(theta - h[i], *args)
-
-    fpp = np.zeros((K, K))
-    fmm = np.zeros((K, K))
-    for i in range(K):
-        for j in range(i, K):
-            fpp[i, j] = fun(theta + h[i] + h[j], *args)
-            fpp[j, i] = fpp[i, j]
-            fmm[i, j] = fun(theta - h[i] - h[j], *args)
-            fmm[j, i] = fmm[i, j]
-
-    hh = (np.diag(h))
-    hh = hh.reshape((K, 1))
-    hh = hh @ hh.T
-
-    H = np.zeros((K, K))
-    for i in range(K):
-        for j in range(i, K):
-            H[i, j] = (fpp[i, j] - fp[i] - fp[j] + f
-                       + f - fm[i] - fm[j] + fmm[i, j]) / hh[i, j] / 2
-            H[j, i] = H[i, j]
-
-    return H

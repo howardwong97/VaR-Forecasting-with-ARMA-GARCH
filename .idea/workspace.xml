@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1d6c30cd-0298-4173-b957-4551629c1e9a" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.ipynb_checkpoints/1-Exploring-Distribution-of-Stock-Returns-checkpoint.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.ipynb_checkpoints/3-ARMA-GARCH-MLE-Normal-Distrbution-checkpoint.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.ipynb_checkpoints/4-GARCH-with-Students-t-Distribution-checkpoint.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.ipynb_checkpoints/5-Sandwich-Estimator-for-Asymptotic-Covariance-checkpoint.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/1-Exploring-Distribution-of-Stock-Returns.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/4-GARCH-with-Students-t-Distribution.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/5-Sandwich-Estimator-for-Asymptotic-Covariance.ipynb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tools/armagarch_norm.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tools/armagarch_tdist.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1-Exploratory-Data-Analysis.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/4-Further-Maximum-Likelihood-Theory.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/armagarch.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/armagarch.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/armagarchv2.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1iC936JluQ5vM4G1lMzn9Z7VQZc" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1d6c30cd-0298-4173-b957-4551629c1e9a" name="Default Changelist" comment="" />
+      <created>1601400505190</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1601400505190</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="1345" y="334" key="SettingsEditor" timestamp="1601551262826">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="1345" y="334" key="SettingsEditor/0.0.2560.1400@0.0.2560.1400" timestamp="1601551262826" />
+    <state x="1650" y="616" width="383" height="166" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1602054525817">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="1650" y="616" width="383" height="166" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.2560.1400@0.0.2560.1400" timestamp="1602054525817" />
+    <state x="0" y="0" width="1193" height="1359" key="dock-window-1" timestamp="1602095375323">
+      <screen x="0" y="0" width="2560" height="1400" />
+    </state>
+    <state x="0" y="0" width="1193" height="1359" key="dock-window-1/0.0.2560.1400@0.0.2560.1400" timestamp="1602095375323" />
+  </component>
+</project>

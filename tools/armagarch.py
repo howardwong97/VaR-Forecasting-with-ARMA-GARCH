@@ -1,146 +1,156 @@
-import numpy as np
+from scipy.special import gamma as GammaFunc
 from scipy.optimize import minimize
+from tqdm.notebook import tqdm
+import numpy as np
+import itertools
+import warnings
+
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
-def arma(c, phi, theta, r):
+def get_epsilon(c, phi, theta, r):
     T = len(r)
-    epsilon = np.zeros(T)
+    eps = np.zeros(T)
     for t in range(T):
         if t < len(phi):
-            epsilon[t] = r[t] - np.mean(r)
+            eps[t] = r[t] - np.mean(r)
         else:
-            ar_sum = np.sum([phi[i] * r[t - 1 - i] for i in range(len(phi))])
-            ma_sum = np.sum([theta[i] * epsilon[t - 1 - i] for i in range(len(theta))])
-            epsilon[t] = r[t] - c - ar_sum - ma_sum
-    return epsilon
+            ar_component = np.sum(np.array([phi[i] * r[t - 1 - i] for i in range(len(phi))], dtype=np.float64))
+            ma_component = np.sum(np.array([theta[i] * eps[t - 1 - i] for i in range(len(theta))], dtype=np.float64))
+            eps[t] = r[t] - c - ar_component - ma_component
+    return eps
 
 
-def garch(omega, alpha, beta, epsilon):
-    T = len(epsilon)
+def get_sigma2(omega, alpha, beta, gamma, r, eps, gjr=False):
+    T = len(eps)
     sigma2 = np.zeros(T)
-    for t in range(T):
-        if t == 0:
-            sigma2[t] = omega / (1 - alpha - beta)  # initialize as unconditional variance
-        else:
-            sigma2[t] = omega + alpha * epsilon[t - 1] ** 2 + beta * sigma2[t - 1]
-    return sigma2
-
-
-def gjr_garch(omega, alpha, gamma, beta, r, epsilon):
-    T = len(epsilon)
-    sigma2 = np.zeros(T)
-
+    sigma2[0] = omega / (1 - alpha - beta)
     for t in range(1, T):
-        if t == 0:
-            sigma2[t] = omega / (1 - alpha - beta)
+        if gjr:
+            sigma2[t] = omega + alpha * eps[t - 1] ** 2 + gamma * r[t - 1] ** 2 * (eps[t - 1] < 0) + beta * sigma2[
+                t - 1]
         else:
-            sigma2[t] = omega + alpha * epsilon[t - 1] ** 2 + gamma * r[t - 1] ** 2 * (epsilon[t - 1] < 0) + beta * \
-                        sigma2[t - 1]
+            sigma2[t] = omega + alpha * eps[t - 1] ** 2 + beta * sigma2[t - 1]
     return sigma2
 
 
-def negative_loglikelihood(params, p, q, r, gjr=False):
-    T = len(r)
+def norm_negative_llh(params, p, q, r, gjr=False, out=None):
     c = params[0]
     phi = params[1:p + 1]
-    theta = params[p + 1:(p + q + 2)]
-
+    theta = params[p + 1:p + q + 1]
+    eps = get_epsilon(c, phi, theta, r)
     if gjr:
-        omega = params[-4]
-        alpha = params[-3]
-        gamma = params[-2]
-        beta = params[-1]
-
-        epsilon = arma(c, phi, theta, r)
-        sigma2 = gjr_garch(omega, alpha, gamma, beta, r, epsilon)
-        sigma2 = np.where(sigma2 <= 0, np.finfo(np.float64).eps, sigma2)
-        NegLogL = -0.5 * np.sum(-np.log(sigma2) - epsilon ** 2 / sigma2)
-
+        omega, alpha, gamma, beta = params[-4:]
     else:
-        omega = params[-3]
-        alpha = params[-2]
-        beta = params[-1]
+        omega, alpha, beta = params[-3:]
+        gamma = None
+    sigma2 = get_sigma2(omega, alpha, beta, gamma, r, eps, gjr)
+    llh = - 0.5 * (np.log(2 * np.pi) + np.log(sigma2) + eps ** 2 / sigma2)
+    neg_llh = -llh  # minimize negative log likelihood
+    total_llh = np.sum(neg_llh)
+    if out is None:
+        return total_llh
+    else:
+        return total_llh, llh, sigma2
 
-        epsilon = arma(c, phi, theta, r)
-        sigma2 = garch(omega, alpha, beta, epsilon)
-        sigma2 = np.where(sigma2 <= 0, np.finfo(np.float64).eps, sigma2)
-        NegLogL = -0.5 * np.sum(-np.log(sigma2) - epsilon ** 2 / sigma2)
 
-    return NegLogL
+def t_negative_llh(params, p, q, r, gjr=False, out=None):
+    c, phi, theta = params[0], params[1:p + 1], params[p + 1:p + q + 1]
+    if gjr:
+        omega, alpha, gamma, beta, v = params[-5:]
+    else:
+        omega, alpha, beta, v = params[-4:]
+        gamma = None
+    eps = get_epsilon(c, phi, theta, r)
+    sigma2 = get_sigma2(omega, alpha, beta, gamma, r, eps, gjr)
+    llh = np.log(GammaFunc((v + 1) / 2) / (GammaFunc(v / 2) * np.sqrt(np.pi * (v - 2) * sigma2)) * \
+          (1 + eps ** 2 / ((v - 2) * sigma2)) ** (-(v + 1) / 2))
+    neg_llh = -llh  # minimize negative log likelihood
+    total_llh = np.sum(neg_llh)
+    if out is None:
+        return total_llh
+    else:
+        return total_llh, llh, sigma2
 
 
-def order_determination(ts, max_p, max_q, gjr=False, verbose=False, with_fit=True):
-    if verbose:
-        print('Running Order Determination...')
-    finfo = np.finfo(np.float64)
-    temp_aic = np.inf
-    import warnings
-    warnings.filterwarnings("ignore")
-    for q in range(1, max_q + 1):
-        for p in range(1, max_p + 1):
-            # Define bounds for c, phi, theta, omega, alpha, beta
-            c_bounds = [(-10 * np.abs(np.mean(ts)), 10 * np.abs(np.mean(ts)))]
-            phi_bounds = [(-0.99999999, 0.99999999) for i in range(p)]
-            theta_bounds = [(-0.99999999, 0.99999999) for i in range(q)]
-            omega_bounds = [(finfo.eps, 2 * np.var(ts))]
-            alpha_bounds = [(0.0, 1.0)]
-            gamma_bounds = [(0.0, 1.0)]
-            beta_bounds = [(0.0, 1.0)]
+def fit_model(r, dist: str, p: int, q: int, gjr=False):
+    np.seterr(divide='ignore', invalid='ignore', over='ignore')
+    e = np.finfo(np.float64).eps
+    bounds = [(-10 * np.abs(np.mean(r)), 10 * np.abs(np.mean(r)))] +\
+             [(-0.9999999999, 0.9999999999) for _ in range(p + q)] +\
+             [(e, 2 * np.var(r))]
+    alpha_bounds, gamma_bounds, beta_bounds = [(e, 1.0-e) for _ in range(3)]
+    initial_params = [0.001 for _ in range(p + q + 1)]
 
-            if gjr:
-                bounds = c_bounds + phi_bounds + theta_bounds + omega_bounds + alpha_bounds + gamma_bounds + beta_bounds
-                initial_params = tuple(np.mean(ts) for _ in range(1 + p + q)) + tuple((np.var(ts) * 0.01, .03, .09, .90))
-
-                res = minimize(negative_loglikelihood, initial_params, args=(p, q, ts, True), bounds=bounds,
-                               method='SLSQP')
-                neg_llh_val = res.fun
-                aic = 2 * len(initial_params) + 2 * neg_llh_val
-                if aic < temp_aic:
-                    best_p = p
-                    best_q = q
-                    temp_aic = aic
-                    if verbose:
-                        print('Current best model: ARMA({},{})-GJR-GARCH(1,1,1), AIC = {}'.format(str(p), str(q), temp_aic))
-
-            else:
-                bounds = c_bounds + phi_bounds + theta_bounds + omega_bounds + alpha_bounds + beta_bounds
-
-                initial_params = tuple(np.mean(ts) for _ in range(1 + p + q)) + tuple((np.var(ts) * 0.01, .03, .90))
-
-                res = minimize(negative_loglikelihood, initial_params, args=(p, q, ts, False), bounds=bounds,
-                               method='SLSQP')
-                neg_llh_val = res.fun
-                aic = 2 * len(initial_params) + 2 * neg_llh_val
-                if aic < temp_aic:
-                    best_p = p
-                    best_q = q
-                    temp_aic = aic
-                    if verbose:
-                        print('Current best model: ARMA({},{})-GARCH(1,1), AIC = {}'.format(str(p), str(q), temp_aic))
-
-    if with_fit:
-        print('Fitting model...')
-        phi_bounds = [(-0.99999999, 0.99999999) for i in range(best_p)]
-        theta_bounds = [(-0.99999999, 0.99999999) for i in range(best_q)]
-
+    if dist == 't':
+        v_bounds = (3, None)
+        con = [{'type': 'eq', 'fun': lambda x: max([x[-1]-int(x[-1])])},
+               {'type': 'ineq', 'fun': lambda x: x[-1] - 3}]
         if gjr:
-            bounds = c_bounds + phi_bounds + theta_bounds + omega_bounds + alpha_bounds + gamma_bounds + beta_bounds
-            initial_params = tuple(np.mean(ts) for _ in range(1 + best_p + best_q)) + tuple((np.var(ts) * 0.01, .03, .09, .90))
-
-            final_res = minimize(negative_loglikelihood, initial_params, args=(best_p, best_q, ts, True), bounds=bounds,
-                           method='SLSQP')
+            initial_params = initial_params + [0.001, 0.1, 0.01, 0.8, 3]
+            con = con + [{'type': 'ineq', 'fun': lambda x: 1.0 - np.finfo(np.float64).eps - x[-4] - x[-3] / 2 - x[-2]}]
+            bounds = bounds + [alpha_bounds, gamma_bounds, beta_bounds, v_bounds]
         else:
-            bounds = c_bounds + phi_bounds + theta_bounds + omega_bounds + alpha_bounds + beta_bounds
-            initial_params = tuple(np.mean(ts) for _ in range(1 + best_p + best_q)) + tuple((np.var(ts) * 0.01, .03, .90))
+            initial_params = initial_params + [0.001, 0.1, 0.8, 3]
+            con = con + [{'type': 'ineq', 'fun': lambda x: 1.0 - np.finfo(np.float64).eps - x[-3] - x[-2]}]
+            bounds = bounds + [alpha_bounds, beta_bounds, v_bounds]
 
-            final_res = minimize(negative_loglikelihood, initial_params, args=(best_p, best_q, ts, False), bounds=bounds,
-                           method='SLSQP')
+        result = minimize(
+            fun=t_negative_llh,
+            x0=initial_params,
+            args=(p, q, r, gjr),
+            method='SLSQP',
+            bounds=bounds,
+            constraints=con
+        )
 
-        print('Model fitting complete.')
-        return final_res
+    elif dist in ['normal', 'norm']:
+        if gjr:
+            initial_params = initial_params + [0.001, 0.1, 0.01, 0.8]
+            con = [{'type': 'ineq', 'fun': lambda x: 1.0 - np.finfo(np.float64).eps - x[-3] - x[-2] / 2 - x[-1]},
+                   {'type': 'ineq', 'fun': lambda x: 1 - np.sum(x[1:p + 1]) - np.finfo(np.float64).eps}]
+            bounds = bounds + [alpha_bounds, gamma_bounds, beta_bounds]
+        else:
+            initial_params = initial_params + [0.001, 0.1, 0.8]
+            con = [{'type': 'ineq', 'fun': lambda x: 1.0 - np.finfo(np.float64).eps - x[-2] - x[-1]},
+                   {'type': 'ineq', 'fun': lambda x: 1 - np.sum(x[1:p + 1]) - np.finfo(np.float64).eps}]
+            bounds = bounds + [alpha_bounds, beta_bounds]
 
+        result = minimize(
+            fun=norm_negative_llh,
+            x0=initial_params,
+            args=(p, q, r, gjr),
+            method='SLSQP',
+            bounds=bounds,
+            constraints=con
+        )
+
+    return result
+
+
+def order_determination(r, dist: str, max_p: int, max_q: int, gjr=False, verbose=False):
+    if dist in ['normal', 'norm']:
+        dist_text = 'Normal distribution'
     else:
-        print('Order determination completed.')
-        print('p =', best_p)
-        print('q =', best_q)
-        print('AIC =', temp_aic)
+        dist_text = 'Students t-distribution'
+    print('Determining order for ARMA(p,q)-GJR-GARCH(1,1,1) with {}...'.format(dist_text))
+    order_combinations = list(itertools.product(np.arange(max_p + 1), np.arange(max_q + 1)))
+    best_aic = np.inf
+    for order in tqdm(order_combinations):
+        p, q = order[0], order[1]
+        result = fit_model(r, dist, p, q, gjr=gjr)
+        current_aic = 2 * result.fun + 2 * len(result.x)
+        if current_aic < best_aic:
+            best_aic = current_aic
+            best_p, best_q = p, q
+            best_params = result.x
+            if verbose:
+                if gjr:
+                    print('Current best: ARMA({},{})-GJR-GARCH(1,1,1), AIC = {}'.format(str(p), str(q), current_aic))
+                else:
+                    print('Current best: ARMA({},{})-GARCH(1,1), AIC = {}'.format(str(p), str(q), current_aic))
+    if verbose:
+        print('Order determination complete with p = {} and q = {}'.format(str(best_p), str(best_q)))
+        print('AIC =', best_aic)
+    return best_params, best_p, best_q
