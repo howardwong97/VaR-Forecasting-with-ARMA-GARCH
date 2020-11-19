@@ -1,11 +1,10 @@
-import itertools
-import warnings
-
 import numpy as np
+import itertools
 from scipy import optimize
 from scipy import stats
 from scipy.special import gamma as GammaFunc
 from tqdm.notebook import tqdm
+import warnings
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
@@ -187,7 +186,7 @@ def fit_model(r, dist: str, p: int, q: int, gjr=False):
     return result
 
 
-def order_determination(r, dist: str, max_p: int, max_q: int, gjr=False, verbose=False):
+def determine_order(r, dist: str, max_p: int, max_q: int, gjr=False, verbose=False):
     order_combinations = list(itertools.product(np.arange(max_p + 1), np.arange(max_q + 1)))
     best_aic = np.inf
     for order in tqdm(order_combinations):
@@ -292,3 +291,33 @@ def get_summary_stats(X, estimates, dist: str, p: int, q: int, gjr=False, print_
                 param[i], output[i, 0], output[i, 1], output[i, 2], output[i, 3])
             )
     return estimates, std_err, tstats, pvals
+
+
+class VaRModel:
+    def __init__(self, gjr=False, llh_func='norm'):
+        """
+        :param gjr: Boolean, whether or not to use GJR-GARCH
+        :param llh_func: String, use 'norm' for Normal Distribution or 't' for Students t
+        """
+        self.gjr = gjr
+        self.llh_func = llh_func
+        self.p = None
+        self.q = None
+        self.params = None
+        self.mu = None
+        self.sigma2 = None
+
+    def fit(self, X, max_p, max_q, verbose=False, summary_stats=False):
+        self.params, self.p, self.q = determine_order(X * 100.0, dist=self.llh_func,
+                                                      max_p=max_p, max_q=max_q,
+                                                      gjr=self.gjr, verbose=verbose)
+        if summary_stats:
+            get_summary_stats(X * 100.0, self.params, self.llh_func, self.p, self.q, self.gjr, print_output=True)
+
+    def predict(self, X, threshold=0.95):
+        scaled_mu, scaled_sigma2 = one_step_prediction(X, self.params, self.p, self.q, self.gjr)
+        self.mu = scaled_mu * 0.01
+        self.sigma2 = scaled_sigma2 * 0.01**2
+        return VaR(self.llh_func, self.mu, np.sqrt(self.sigma2), 1-threshold)
+
+

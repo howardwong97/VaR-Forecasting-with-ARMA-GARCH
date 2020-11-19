@@ -16,14 +16,12 @@ intervals = [(i - 500, i) for i in range(500, T - 1)]
 
 def one_step_var(interval):
     t1, t2 = interval
-    X = log_returns.values[t1:t2] * 100.0
+    X = log_returns.values[t1:t2]
     prediction_date = log_returns.index[t2 + 1].strftime('%Y-%m-%d')
 
-    results = ag.fit_model(X, 'norm', 1, 1, True)
-    r_pred, sigma2_pred = ag.one_step_prediction(X, results[0], p=1, q=1)
-    r_pred = r_pred * 0.01
-    sigma2_pred = sigma2_pred * 0.01 ** 2
-    value_at_risk95 = ag.VaR('norm', r_pred, np.sqrt(sigma2_pred), 1 - 0.95)
+    model = ag.VaRModel()
+    model.fit(X, 2, 2, verbose=False, summary_stats=False)
+    value_at_risk95 = model.predict(X, threshold=0.95)
 
     with open(
             '/home/howardwong/Desktop/Research/ARMA-GARCH-Models/data/var-forecasts/{}.txt'.format(prediction_date), 'w'

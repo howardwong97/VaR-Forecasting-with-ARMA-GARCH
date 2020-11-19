@@ -10,14 +10,10 @@ This notebook goes through some of the key characteristics and statistical distr
 
 Here I go through the basic theory of Autoregressive Moving-Average (ARMA) and General Autoregressive Conditional Heteroscedastic (GARCH) processes and why they are relevant.
 
-## 3: ARMA-GARCH MLE Normal Distribution
+## 3: ARMA-GARCH Maximum Likelihood Estimation
 
-I demonstrate how Maximum Likelihood Estimation can be applied using the Gaussian likelihood function.
+I demonstrate how Maximum Likelihood Estimation can be applied using various likelihood functions.
 
-## 4: GARCH with Students-t Distribution
+## 4: Forecasting Value at Risk
 
-Similar to above, but this time with a different likelihood function.
-
-## 5: Forecasting Value at Risk
-
-Here, I bring all the theory and code from the previous notebooks and perform a backtest of the model to estimate one day 5% VaR values. I also demonstrate how the results show that the model is not as predictive/ accurate as it may seem.
+Here, I bring all the theory and code from the previous notebooks and perform a backtest of the model. to estimate one day 5% VaR values. I also demonstrate how the results show that the model is not as predictive/ accurate as it may seem.
